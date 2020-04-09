@@ -22,6 +22,7 @@
 #include "klee/Solver/Solver.h"
 #include "klee/Solver/SolverCmdLine.h"
 #include "klee/Solver/SolverImpl.h"
+#include "klee/Expr/KQueryParser/KQueryParser.h"
 #include "klee/Statistics.h"
 
 #include "llvm/ADT/StringExtras.h"
@@ -45,10 +46,10 @@ llvm::cl::opt<std::string> InputFile(llvm::cl::desc("<input query log>"),
                                      llvm::cl::Positional, llvm::cl::init("-"),
                                      llvm::cl::cat(klee::ExprCat));
 
-enum ToolActions { PrintTokens, PrintAST, PrintSMTLIBv2, Evaluate };
+enum ToolActions { PrintTokens, PrintAST, PrintSMTLIBv2, Evaluate, OutputParser };
 
 static llvm::cl::opt<ToolActions> ToolAction(
-    llvm::cl::desc("Tool actions:"), llvm::cl::init(Evaluate),
+    llvm::cl::desc("Tool actions:"), llvm::cl::init(OutputParser),
     llvm::cl::values(clEnumValN(PrintTokens, "print-tokens",
                                 "Print tokens from the input file."),
                      clEnumValN(PrintSMTLIBv2, "print-smtlib",
@@ -56,7 +57,9 @@ static llvm::cl::opt<ToolActions> ToolAction(
                      clEnumValN(PrintAST, "print-ast",
                                 "Print parsed AST nodes from the input file."),
                      clEnumValN(Evaluate, "evaluate",
-                                "Evaluate parsed AST nodes from the input file.")
+                                "Evaluate parsed AST nodes from the input file."), 
+                     clEnumValN(OutputParser, "output-parser",
+                                "Output parser combinator of constraints from input file.")  
                          KLEE_LLVM_CL_VAL_END),
     llvm::cl::cat(klee::SolvingCat));
 
@@ -230,6 +233,7 @@ static bool EvaluateInputAST(const char *Filename,
         if (S->mustBeTrue(Query(ConstraintManager(QC->Constraints), QC->Query),
                           result)) {
           llvm::outs() << (result ? "VALID" : "INVALID");
+          // llvm::outs() << ("INVALID here");
         } else {
           llvm::outs() << "FAIL (reason: "
                     << SolverImpl::getOperationStatusString(S->impl->getOperationStatusCode())
@@ -260,6 +264,7 @@ static bool EvaluateInputAST(const char *Filename,
                                       QC->Query),
                                 QC->Objects, result)) {
           llvm::outs() << "INVALID\n";
+          // llvm::outs() << ("INVALID here2");
 
           for (unsigned i = 0, e = result.size(); i != e; ++i) {
             llvm::outs() << "\tArray " << i << ":\t"
@@ -312,6 +317,60 @@ static bool EvaluateInputAST(const char *Filename,
       << "query cex = " 
       << *theStatisticManager->getStatisticByName("QueriesCEX") << "\n";
   }
+
+  return success;
+}
+
+static bool OutputParserAST(const char *Filename,
+                             const MemoryBuffer *MB,
+                             ExprBuilder *Builder) {
+  std::vector<Decl*> Decls;
+  Parser *P = Parser::Create(Filename, MB, Builder, ClearArrayAfterQuery);
+  P->SetMaxErrors(20);
+  while (Decl *D = P->ParseTopLevelDecl()) {
+    D->dump();
+    Decls.push_back(D);
+  }
+
+  bool success = true;
+  if (unsigned N = P->GetNumErrors()) {
+    llvm::errs() << Filename << ": parse failure: " << N << " errors.\n";
+    success = false;
+  }  
+
+  if (!success)
+    return false;
+  
+  // unsigned Index = 0;
+  KQueryParser kparser;  
+  for (std::vector<Decl*>::iterator it = Decls.begin(), 
+      ie = Decls.end(); it != ie; ++it) {
+
+    Decl *D = *it;
+    if (QueryCommand *QC = dyn_cast<QueryCommand>(D)) {
+      if (QC->Objects.empty()) {
+        llvm::outs() << "No symbolic input to parser"; // Change this error message
+      } 
+      else if (QC->Values.empty()){ // Constraint parser
+        // Identify symbolic array for parser combinator
+        const Array* symArray = QC->Objects[0];
+        kparser.initializeParser(symArray);
+        llvm:outs() << "Parser initialized\n"; 
+
+        if (kparser.parseQueryCommand(Query(ConstraintManager(QC->Constraints), 
+                                      QC->Query))) {
+                        
+        }
+
+      }
+    }
+
+  }
+
+  for (std::vector<Decl*>::iterator it = Decls.begin(),
+         ie = Decls.end(); it != ie; ++it)
+    delete *it;
+  delete P;
 
   return success;
 }
@@ -441,6 +500,10 @@ int main(int argc, char **argv) {
     break;
   case PrintSMTLIBv2:
     success = printInputAsSMTLIBv2(InputFile=="-"? "<stdin>" : InputFile.c_str(), MB.get(),Builder);
+    break;
+  case OutputParser:
+    success = OutputParserAST(InputFile=="-" ? "<stdin>" : InputFile.c_str(),
+                               MB.get(), Builder);
     break;
   default:
     llvm::errs() << argv[0] << ": error: Unknown program action!\n";

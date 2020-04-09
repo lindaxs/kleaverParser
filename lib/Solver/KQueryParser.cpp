@@ -1,0 +1,95 @@
+#include "klee/Expr/KQueryParser/KQueryParser.h"
+
+#include<cstdio>
+#include<iostream>
+#include<vector>
+#include<set>
+#include<algorithm>
+#include<math.h>
+#include<iterator>
+
+using namespace klee;
+void KQueryParser::initializeParser(const Array* arr) {
+  // Initialize comb
+  std::string name = arr->name;
+  int size = arr->size;
+  comb = SetCombinator(name, size);
+}
+
+bool KQueryParser::parseQueryCommand(const Query& query) {
+  for (const ref<Expr> &constraint : query.constraints) {
+    int width; 
+    KQueryParser::parseConstraint(constraint, &width);
+  }
+  return true;
+}
+
+// KQueryElem::construct(ref<Expr> e, int *width_out) {
+
+// }
+
+KQueryElem* KQueryParser::parseConstraint(ref<Expr> e, int* width_out) {
+  switch (e->getKind()) {
+  case Expr::Constant: {
+    ConstantExpr *CE = cast<ConstantExpr>(e);
+    *width_out = CE->getWidth();
+    
+    if (*width_out <= 32)
+      return new CharElem(CE->getZExtValue(32));
+    if (*width_out <= 64)
+      return new CharElem(CE->getZExtValue());
+    
+    return new CharElem(100);
+  }
+  case Expr::Eq: {
+    EqExpr *ee = cast<EqExpr>(e);
+    KQueryElem *left = parseConstraint(ee->left, width_out);
+    KQueryElem *right = parseConstraint(ee->right, width_out);
+
+    std::cout << left->getType() << std::endl;
+    std::cout << right->getType() << std::endl;
+    if (left->getType() == KQueryElem::Index) {
+      if (right->getType() == KQueryElem::Char) {
+        std::set<char> s {(char) right->elem};
+        comb.setElement(left->elem, s);
+      }
+    } else if (left->getType() == KQueryElem::Char) {
+      if (right->getType() == KQueryElem::Index) {
+        std::set<char> s {(char) left->elem};
+        comb.setElement(right->elem, s);
+      }
+      comb.printChRange();
+    } 
+    return new CharElem(100);
+
+    // If = false, then complement set
+    // if (*width_out==1) {
+    //   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(ee->left)) {
+    //     if (CE->isTrue())
+    //       return right;
+    //     return vc_notExpr(vc, right);
+    //   } else {
+    //     return vc_iffExpr(vc, left, right);
+    //   }
+    // } else {
+    //   *width_out = 1;
+    //   return vc_eqExpr(vc, left, right);
+    // }
+  }
+  case Expr::Read: {
+    ReadExpr *re = cast<ReadExpr>(e);
+    assert(re && re->updates.root);
+    *width_out = re->updates.root->getRange();
+    KQueryElem *chElem = parseConstraint(re->index, width_out);
+    return new IndexElem(chElem->elem);
+  }
+  default: {
+    std::cout << "Unhandled Expr type" << std::endl;
+    return new CharElem(100);
+    break;
+  }
+  }
+}
+
+
+KQueryParser::KQueryParser() {;}
