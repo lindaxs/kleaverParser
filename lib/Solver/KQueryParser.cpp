@@ -33,7 +33,10 @@ KQueryElem* KQueryParser::parseConstraint(ref<Expr> e, int* width_out) {
   case Expr::Constant: {
     ConstantExpr *CE = cast<ConstantExpr>(e);
     *width_out = CE->getWidth();
-    
+
+    // Coerce to bool if necessary.
+    if (*width_out == 1)
+      return new BoolElem(CE->isTrue());
     if (*width_out <= 32)
       return new CharElem(CE->getZExtValue(32));
     if (*width_out <= 64)
@@ -48,33 +51,31 @@ KQueryElem* KQueryParser::parseConstraint(ref<Expr> e, int* width_out) {
 
     std::cout << left->getType() << std::endl;
     std::cout << right->getType() << std::endl;
+    // Index on left
     if (left->getType() == KQueryElem::Index) {
       if (right->getType() == KQueryElem::Char) {
         std::set<char> s {(char) right->elem};
         comb.setElement(left->elem, s);
+      } else if (right->getType() == KQueryElem::Bool) {
+        if (!right->elem) {
+          comb.complementSet(left->elem);
+        }
       }
-    } else if (left->getType() == KQueryElem::Char) {
-      if (right->getType() == KQueryElem::Index) {
+      return left;
+    } // Index on right
+    else if (right->getType() == KQueryElem::Index) {
+      if (left->getType() == KQueryElem::Char) {
         std::set<char> s {(char) left->elem};
         comb.setElement(right->elem, s);
+      } else if (left->getType() == KQueryElem::Bool) {
+        if (!left->elem) {
+          comb.complementSet(right->elem);
+        }
       }
-      comb.printChRange();
+      return right;
     } 
+    // TODO CHANGE
     return new CharElem(100);
-
-    // If = false, then complement set
-    // if (*width_out==1) {
-    //   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(ee->left)) {
-    //     if (CE->isTrue())
-    //       return right;
-    //     return vc_notExpr(vc, right);
-    //   } else {
-    //     return vc_iffExpr(vc, left, right);
-    //   }
-    // } else {
-    //   *width_out = 1;
-    //   return vc_eqExpr(vc, left, right);
-    // }
   }
   case Expr::Read: {
     ReadExpr *re = cast<ReadExpr>(e);

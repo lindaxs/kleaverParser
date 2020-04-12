@@ -19,7 +19,8 @@ namespace klee {
       int elem;
       enum Type {
         Index, 
-        Char
+        Char, 
+        Bool,
       };
       virtual Type getType() const = 0;
   };
@@ -36,6 +37,13 @@ namespace klee {
       Type type = Char;
       Type getType() const { return Char; }
       CharElem(int ch) {elem = ch;}
+  };
+
+  class BoolElem : public KQueryElem {
+    public: 
+      Type type = Bool;
+      Type getType() const { return Bool; }
+      BoolElem(bool b) { elem = b;}
   };
 
   class KQueryParser {

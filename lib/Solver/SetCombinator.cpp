@@ -27,7 +27,7 @@ void SetCombinator::complementSet(int index) {
   // Return complement of set
   std::set<char> compSet;
   for (int i  = 0; i < 128; i++) {
-    if (setList[index].find(i) != setList[index].end()) {
+    if (setList[index].find(i) == setList[index].end()) {
       compSet.insert((char) i);
     }
   }
