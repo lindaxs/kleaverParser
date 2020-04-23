@@ -18,11 +18,19 @@ namespace klee {
     public: 
       int elem;
       enum Type {
+        Null,
         Index, 
         Char, 
         Bool,
       };
       virtual Type getType() const = 0;
+  };
+
+  class NullElem : public KQueryElem {
+    public: 
+      Type type = Null;
+      Type getType() const { return Null; }
+      NullElem() {;}
   };
 
   class IndexElem : public KQueryElem {
@@ -46,16 +54,20 @@ namespace klee {
       BoolElem(bool b) { elem = b;}
   };
 
+
   class KQueryParser {
     private: 
       SetCombinator comb;
+      std::map<ref<Expr>, KQueryElem*> parsed;
 
     public: 
       SetCombinator getCombinator() { return comb; }
 
       void initializeParser(const Array* arr);
-      bool parseQueryCommand(const Query &QC);
+      bool parseQueryCommand(const Query &QC, HParser** fullParser);
       KQueryElem* parseConstraint(ref<Expr> constraint, int* width_out);
+      KQueryElem* parseConstraintActual(ref<Expr> constraint, int* width_out);
+
 
       KQueryParser();
 
