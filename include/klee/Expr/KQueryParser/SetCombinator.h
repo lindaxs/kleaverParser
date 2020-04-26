@@ -9,6 +9,7 @@
 #include<math.h>
 #include<iterator>
 #include<sstream>
+#include<fstream>
 
 extern "C" {
   #include<hammer/hammer.h>

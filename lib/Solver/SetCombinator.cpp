@@ -129,9 +129,6 @@ std::string combineRangeStr(std::vector<std::string> combinatorElemStr, bool isC
       concatElemStr += combinatorElemStr[i] + ", ";
     }
     concatElemStr += "NULL)";
-    if (!isChoice) {
-      concatElemStr += ";";
-    }
     return concatElemStr;
   // }
   
@@ -249,6 +246,31 @@ HParser* SetCombinator::outputCombinator() {
 
   HParser *fullParser = combineRange(combArr, false);
   std::string fullParserStr = combineRangeStr(fullCombinatorStr, false);
+
+
+  /* Output to file */
+  std::ofstream outfile;
+  outfile.open("constraintOutput.c");
+  // TODO: change this to be based on the input constraint file name
+  outfile << "#include <hammer/hammer.h>" << "\n";
+  outfile << "#include <stdio.h>" << "\n\n";
+  outfile << "int main(int argc, char *argv[]) {\n";
+  outfile << "\tuint8_t input[1024];\n";
+  outfile << "\tsize_t inputsize;\n";
+
+  outfile << "\tHParser *fullParser = ";
+  outfile << fullParserStr << ";\n\n";
+
+  outfile << "inputsize = fread(input, 1, sizeof(input), stdin);" << "\n\n";
+
+  outfile << "\tHParseResult *result = h_parse(fullParser, input, inputsize);\n";
+  outfile << "\tif (result) {\n";
+  outfile << "\t\tprintf(\"yay!\\n\");\n";
+  outfile << "\t} else {\n";
+  outfile << "\t\tprintf(\"boo!\\n\");\n";
+  outfile << "\t}\n";
+  outfile << "}\n";
+  outfile.close();
 
   std::cout << fullParserStr << std::endl;
 

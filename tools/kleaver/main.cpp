@@ -358,24 +358,8 @@ static bool OutputParserAST(const char *Filename,
         llvm:outs() << "Parser initialized\n"; 
 
         HParser *fullParser;
-        if (kparser.parseQueryCommand(Query(ConstraintManager(QC->Constraints), 
-                                      QC->Query), &fullParser)) {
-
-          uint8_t input[1024];
-          size_t inputsize;   
-
-          inputsize = fread(input, 1, sizeof(input), stdin);  
-
-          // fullParser = h_token((const uint8_t *)"Hello World", 11);
-
-          HParseResult *result = h_parse(fullParser, input, inputsize);
-          if (result) {
-            std::cout << "succeed\n" << std::endl;
-          } else {
-            std::cout << "FAIL\n" << std::endl;
-          }                                  
-                   
-        }
+        kparser.parseQueryCommand(Query(ConstraintManager(QC->Constraints), 
+                                      QC->Query), &fullParser);
 
       }
     }
