@@ -9,11 +9,12 @@
 #include<iterator>
 
 using namespace klee;
+
 void KQueryParser::initializeParser(const Array* arr) {
   // Initialize comb
   std::string name = arr->name;
   int size = arr->size;
-  comb = SetCombinator(name, size);
+  combMap[name] = SetCombinator(name, size);;
 }
 
 // TODO: Have it return false when fails
@@ -24,7 +25,11 @@ bool KQueryParser::parseQueryCommand(const Query& query, HParser** fullParser) {
     KQueryParser::parseConstraint(constraint, &width);
   }
   // comb.printChRange();
-  *fullParser = comb.outputCombinator();
+  for (auto &combElem : combMap) {
+
+    combElem.second.printChRange();
+    *fullParser = combElem.second.outputCombinator();
+  }
   return true;
 }
 
@@ -78,16 +83,16 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
     if (left->getType() == KQueryElem::Index) {
       if (right->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = comb.getSetList()[left->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[left->elem];
         for (char ch : currSet) {
           if (ch == right->elem) {
             s.insert(ch);
           }
         }
-        comb.setElement(left->elem, s);
+        combMap[combName].setElement(left->elem, s);
       } else if (right->getType() == KQueryElem::Bool) {
         if (!right->elem) {
-          comb.complementSet(left->elem);
+          combMap[combName].complementSet(left->elem);
         }
       }
       return left;
@@ -95,16 +100,16 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
     else if (right->getType() == KQueryElem::Index) {
       if (left->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = comb.getSetList()[right->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[right->elem];
         for (char ch : currSet) {
           if (ch == left->elem) {
             s.insert(ch);
           }
         }
-        comb.setElement(right->elem, s);
+        combMap[combName].setElement(right->elem, s);
       } else if (left->getType() == KQueryElem::Bool) {
         if (!left->elem) {
-          comb.complementSet(right->elem);
+          combMap[combName].complementSet(right->elem);
         }
       }
       return right;
@@ -121,26 +126,26 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
     if (left->getType() == KQueryElem::Index) {
       if (right->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = comb.getSetList()[left->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[left->elem];
         for (char ch : currSet) {
           if (ch < right->elem) {
             s.insert(ch);
           }
         }
-        comb.setElement(left->elem, s);
+        combMap[combName].setElement(left->elem, s);
       }
       return left;
     } // Index on right
     else if (right->getType() == KQueryElem::Index) {
       if (left->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = comb.getSetList()[right->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[right->elem];
         for (char ch : currSet) {
           if (ch < left->elem) {
             s.insert(ch);
           }
         }
-        comb.setElement(right->elem, s);
+        combMap[combName].setElement(right->elem, s);
       } 
       return right;
     } 
@@ -156,26 +161,26 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
     if (left->getType() == KQueryElem::Index) {
       if (right->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = comb.getSetList()[left->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[left->elem];
         for (char ch : currSet) {
           if (ch <= right->elem) {
             s.insert(ch);
           }
         }
-        comb.setElement(left->elem, s);
+        combMap[combName].setElement(left->elem, s);
       }
       return left;
     } // Index on right
     else if (right->getType() == KQueryElem::Index) {
       if (left->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = comb.getSetList()[right->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[right->elem];
         for (char ch : currSet) {
           if (ch <= left->elem) {
             s.insert(ch);
           }
         }
-        comb.setElement(right->elem, s);
+        combMap[combName].setElement(right->elem, s);
       } 
       return right;
     } 
@@ -187,7 +192,9 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
     assert(re && re->updates.root);
     *width_out = re->updates.root->getRange();
 
-    if ((comb.getName()).compare(re->updates.root->name) == 0) {
+    if (combMap.find(re->updates.root->name) != combMap.end()) {
+      combName = re->updates.root->name;
+      // comb = combMap[re->updates.root->name];
       KQueryElem *chElem = parseConstraint(re->index, width_out);
       return new IndexElem(chElem->elem);
     } else {
@@ -204,6 +211,11 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
   
   // Casting
   case Expr::ZExt: {
+    int srcWidth;
+    CastExpr *ce = cast<CastExpr>(e);
+    return parseConstraint(ce->src, &srcWidth);
+  }
+  case Expr::SExt: {
     int srcWidth;
     CastExpr *ce = cast<CastExpr>(e);
     return parseConstraint(ce->src, &srcWidth);

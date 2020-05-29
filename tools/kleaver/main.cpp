@@ -349,13 +349,18 @@ static bool OutputParserAST(const char *Filename,
     Decl *D = *it;
     if (QueryCommand *QC = dyn_cast<QueryCommand>(D)) {
       if (QC->Objects.empty()) {
-        llvm::outs() << "No symbolic input to parser"; // Change this error message
+        llvm::outs() << "No symbolic input to parser\n"; // Change this error message
       } 
       else if (QC->Values.empty()){ // Constraint parser
         // Identify symbolic array for parser combinator
-        const Array* symArray = QC->Objects[0];
-        kparser.initializeParser(symArray);
-        llvm:outs() << "Parser initialized\n"; 
+        for (unsigned i = 0, e = QC->Objects.size(); i != e; ++i) {
+          const Array* symArray = QC->Objects[i];
+          kparser.initializeParser(symArray);
+          llvm:outs() << "Parser " << QC->Objects[i]->name  << " initialized\n"; 
+        }
+            
+        
+        
 
         HParser *fullParser;
         kparser.parseQueryCommand(Query(ConstraintManager(QC->Constraints), 

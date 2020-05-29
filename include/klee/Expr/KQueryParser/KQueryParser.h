@@ -57,11 +57,16 @@ namespace klee {
 
   class KQueryParser {
     private: 
-      SetCombinator comb;
+      // Keep track of all set combinators by name
+      std::map<std::string, SetCombinator> combMap; 
+      // Keep track of particular combinator
+      std::string combName;
       std::map<ref<Expr>, KQueryElem*> parsed;
 
+      
+
     public: 
-      SetCombinator getCombinator() { return comb; }
+      // SetCombinator getCombinator() { return comb; }
 
       void initializeParser(const Array* arr);
       bool parseQueryCommand(const Query &QC, HParser** fullParser);

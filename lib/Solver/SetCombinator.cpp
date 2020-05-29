@@ -100,10 +100,10 @@ HParser* outputSeqElem(std::vector<HParser*> combinatorElem, int count) {
   constexpr int size = 2;
   HParser* arr[size];
   // std::array<HParser*, size> arr;
-  std::cout << "unit size " << combinatorElem.size() << std::endl;
+  // std::cout << "unit size " << combinatorElem.size() << std::endl;
   std::copy(combinatorElem.begin(), combinatorElem.end(), arr);
 
-  std::cout << "times " << count << std::endl;
+  // std::cout << "times " << count << std::endl;
   // Combine the combinatorElem with option
   HParser* elem = combineRange(arr);
 
@@ -116,10 +116,11 @@ HParser* outputSeqElem(std::vector<HParser*> combinatorElem, int count) {
 }
 
 std::string combineRangeStr(std::vector<std::string> combinatorElemStr, bool isChoice=true) {
-  // if (combinatorElemStr.size() == 1) {
-  //   return combinatorElemStr[0];
-  // } else {
+  if (combinatorElemStr.size() == 1) {
+    return combinatorElemStr[0];
+  } else {
     std::string concatElemStr;
+
     if (isChoice) {
       concatElemStr = "h_choice(";
     } else {
@@ -130,7 +131,7 @@ std::string combineRangeStr(std::vector<std::string> combinatorElemStr, bool isC
     }
     concatElemStr += "NULL)";
     return concatElemStr;
-  // }
+  }
   
 }
 
@@ -241,7 +242,7 @@ HParser* SetCombinator::outputCombinator() {
   constexpr int size = 1;
   HParser* combArr[size];
   // std::array<HParser*, size> arr;
-  std::cout << "full size " << fullCombinator.size() << std::endl;
+  // std::cout << "full size " << fullCombinator.size() << std::endl;
   std::copy(fullCombinator.begin(), fullCombinator.end(), combArr);
 
   HParser *fullParser = combineRange(combArr, false);
@@ -250,7 +251,10 @@ HParser* SetCombinator::outputCombinator() {
 
   /* Output to file */
   std::ofstream outfile;
-  outfile.open("constraintOutput.c");
+
+  std::stringstream fileName;
+  fileName << "constraint" << identifier << ".c";
+  outfile.open(fileName.str());
   // TODO: change this to be based on the input constraint file name
   outfile << "#include <hammer/hammer.h>" << "\n";
   outfile << "#include <stdio.h>" << "\n\n";
@@ -258,10 +262,11 @@ HParser* SetCombinator::outputCombinator() {
   outfile << "\tuint8_t input[1024];\n";
   outfile << "\tsize_t inputsize;\n";
 
+  outfile << "\t// Parser for " << identifier << "\n";
   outfile << "\tHParser *fullParser = ";
   outfile << fullParserStr << ";\n\n";
 
-  outfile << "inputsize = fread(input, 1, sizeof(input), stdin);" << "\n\n";
+  outfile << "\tinputsize = fread(input, 1, sizeof(input), stdin);" << "\n\n";
 
   outfile << "\tHParseResult *result = h_parse(fullParser, input, inputsize);\n";
   outfile << "\tif (result) {\n";
