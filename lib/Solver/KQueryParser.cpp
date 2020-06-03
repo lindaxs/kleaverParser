@@ -81,11 +81,12 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
 
     // Index on left
     if (left->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) left;
       if (right->getType() == KQueryElem::Char) {
         std::set<char> s;
         std::set<char> currSet = combMap[combName].getSetList()[left->elem];
         for (char ch : currSet) {
-          if (ch == right->elem) {
+          if (iElem->evalCond(ch) == right->elem) {
             s.insert(ch);
           }
         }
@@ -95,24 +96,25 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
           combMap[combName].complementSet(left->elem);
         }
       }
-      return left;
+      return iElem;
     } // Index on right
     else if (right->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) right;
       if (left->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = combMap[combName].getSetList()[right->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[iElem->elem];
         for (char ch : currSet) {
-          if (ch == left->elem) {
+          if (iElem->evalCond(ch) == left->elem) {
             s.insert(ch);
           }
         }
-        combMap[combName].setElement(right->elem, s);
+        combMap[combName].setElement(iElem->elem, s);
       } else if (left->getType() == KQueryElem::Bool) {
         if (!left->elem) {
-          combMap[combName].complementSet(right->elem);
+          combMap[combName].complementSet(iElem->elem);
         }
       }
-      return right;
+      return iElem;
     } 
 
     return new NullElem();
@@ -124,30 +126,32 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
 
     // Index on left
     if (left->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) left;
       if (right->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = combMap[combName].getSetList()[left->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[iElem->elem];
         for (char ch : currSet) {
-          if (ch < right->elem) {
+          if (iElem->evalCond(ch) < right->elem) {
             s.insert(ch);
           }
         }
-        combMap[combName].setElement(left->elem, s);
+        combMap[combName].setElement(iElem->elem, s);
       }
-      return left;
+      return iElem;
     } // Index on right
     else if (right->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) right;
       if (left->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = combMap[combName].getSetList()[right->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[iElem->elem];
         for (char ch : currSet) {
-          if (ch < left->elem) {
+          if (iElem->evalCond(ch) > left->elem) {
             s.insert(ch);
           }
         }
-        combMap[combName].setElement(right->elem, s);
+        combMap[combName].setElement(iElem->elem, s);
       } 
-      return right;
+      return iElem;
     } 
 
     return new NullElem();
@@ -159,32 +163,107 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
 
     // Index on left
     if (left->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) left;
       if (right->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = combMap[combName].getSetList()[left->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[iElem->elem];
         for (char ch : currSet) {
-          if (ch <= right->elem) {
+          if (iElem->evalCond(ch) <= right->elem) {
             s.insert(ch);
           }
         }
-        combMap[combName].setElement(left->elem, s);
+        combMap[combName].setElement(iElem->elem, s);
       }
-      return left;
+      return iElem;
     } // Index on right
     else if (right->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) right;
       if (left->getType() == KQueryElem::Char) {
         std::set<char> s;
-        std::set<char> currSet = combMap[combName].getSetList()[right->elem];
+        std::set<char> currSet = combMap[combName].getSetList()[iElem->elem];
         for (char ch : currSet) {
-          if (ch <= left->elem) {
+          if (iElem->evalCond(ch) >= left->elem) {
             s.insert(ch);
           }
         }
         combMap[combName].setElement(right->elem, s);
       } 
-      return right;
+      return iElem;
     } 
 
+    return new NullElem();
+  }
+  case Expr::Ult: {
+    UltExpr *ue = cast<UltExpr>(e);
+    KQueryElem *left = parseConstraint(ue->left, width_out);
+    KQueryElem *right = parseConstraint(ue->right, width_out);
+
+    // Index on left
+    if (left->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) left;
+      if (right->getType() == KQueryElem::Char) {
+        std::set<char> s;
+        std::set<char> currSet = combMap[combName].getSetList()[iElem->elem];
+        for (char ch : currSet) {
+          if ((unsigned int) iElem->evalCond(ch) < (unsigned int) right->elem) {
+            s.insert(ch);
+          }
+        }
+        combMap[combName].setElement(iElem->elem, s);
+      }
+      return iElem;
+    } // Index on right
+    else if (right->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) right;
+      if (left->getType() == KQueryElem::Char) {
+        std::set<char> s;
+        std::set<char> currSet = combMap[combName].getSetList()[iElem->elem];
+        for (char ch : currSet) {
+          if ((unsigned int) iElem->evalCond(ch) > (unsigned int) left->elem) {
+            s.insert(ch);
+          }
+        }
+        combMap[combName].setElement(iElem->elem, s);
+      } 
+      return iElem;
+    } 
+
+    return new NullElem();
+  }
+  case Expr::Ule: {
+    UltExpr *ue = cast<UltExpr>(e);
+    KQueryElem *left = parseConstraint(ue->left, width_out);
+    KQueryElem *right = parseConstraint(ue->right, width_out);
+
+    // Index on left
+    if (left->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) left;
+      if (right->getType() == KQueryElem::Char) {
+        std::set<char> s;
+        std::set<char> currSet = combMap[combName].getSetList()[iElem->elem];
+        for (char ch : currSet) {
+          if ((unsigned int) iElem->evalCond(ch) <= (unsigned int) right->elem) {
+            s.insert(ch);
+          }
+        }
+        combMap[combName].setElement(iElem->elem, s);
+      }
+      return iElem;
+    } // Index on right
+    else if (right->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) right;
+      if (left->getType() == KQueryElem::Char) {
+        std::set<char> s;
+        std::set<char> currSet = combMap[combName].getSetList()[iElem->elem];
+        for (char ch : currSet) {
+          if ((unsigned int) iElem->evalCond(ch) >= (unsigned int) left->elem) {
+            s.insert(ch);
+          }
+        }
+        combMap[combName].setElement(iElem->elem, s);
+      } 
+      return iElem;
+    } 
     return new NullElem();
   }
   case Expr::Read: {
@@ -200,7 +279,6 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
     } else {
       return new NullElem();
     }
-    
   }
   case Expr::Extract: {
     ExtractExpr *ee = cast<ExtractExpr>(e);
@@ -208,6 +286,9 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
 
     // TODO: add offset  
   }
+  // case eMacroKind_ReadLSB: {
+    
+  // }
   
   // Casting
   case Expr::ZExt: {
@@ -220,6 +301,52 @@ KQueryElem* KQueryParser::parseConstraintActual(ref<Expr> e, int* width_out) {
     CastExpr *ce = cast<CastExpr>(e);
     return parseConstraint(ce->src, &srcWidth);
   }
+  // Arithmetic
+
+  case Expr::Add: {
+    AddExpr *ae = cast<AddExpr>(e);
+    KQueryElem *left = parseConstraint(ae->left, width_out);
+    KQueryElem *right = parseConstraint(ae->right, width_out);
+
+    if (left->getType() == KQueryElem::Index) {
+      IndexElem *iElem = (IndexElem*) left;
+      if (right->getType() == KQueryElem::Char) {
+        std::pair <std::string, int> cond ("add", right->elem);
+        iElem->addCond(cond);
+        return iElem;
+      }
+    }
+    else if (right->getType() == KQueryElem::Index) {
+      IndexElem* iElem = (IndexElem*) right;
+      if (left->getType() == KQueryElem::Char) {
+        std::pair <std::string, int> cond ("add", left->elem);
+        iElem->addCond(cond);
+        return iElem;
+      }
+    }
+  }
+  case Expr::Mul: {
+    MulExpr *me = cast<MulExpr>(e);
+    KQueryElem *left = parseConstraint(me->left, width_out);
+    KQueryElem *right = parseConstraint(me->right, width_out);
+
+    if (left->getType() == KQueryElem::Index) {
+      IndexElem *iElem = (IndexElem*) left;
+      if (right->getType() == KQueryElem::Char) {
+        std::pair <std::string, int> cond ("mul", right->elem);
+        iElem->addCond(cond);
+        return iElem;
+      }
+    }
+    else if (right->getType() == KQueryElem::Index) {
+      IndexElem *iElem = (IndexElem*) right;
+      if (left->getType() == KQueryElem::Char) {
+        std::pair <std::string, int> cond ("mul", left->elem);
+        iElem->addCond(cond);
+        return iElem;
+      }
+    }
+  } 
   default: {
     // std::cout << "Unhandled Expr type" << std::endl;
     return new NullElem();

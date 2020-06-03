@@ -21,6 +21,7 @@
 #include "llvm/Support/CommandLine.h"
 
 #include <cstdio>
+#include <iostream> 
 
 #define vc_bvBoolExtract IAMTHESPAWNOFSATAN
 // unclear return
@@ -522,6 +523,8 @@ ExprHandle STPBuilder::constructActual(ref<Expr> e, int *width_out) {
   if (!width_out) width_out = &width;
 
   ++stats::queryConstructs;
+
+  std::cout << e->getKind() << std::endl;
 
   switch (e->getKind()) {
   case Expr::Constant: {

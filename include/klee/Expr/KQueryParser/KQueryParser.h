@@ -23,6 +23,7 @@ namespace klee {
         Char, 
         Bool,
       };
+      std::vector<std::pair<std::string, int>> conds;
       virtual Type getType() const = 0;
   };
 
@@ -36,8 +37,35 @@ namespace klee {
   class IndexElem : public KQueryElem {
     public:
       Type type = Index;
+      // Maintain conditions
       Type getType() const { return Index; }
+      void addCond(std::pair<std::string, int> c) {
+        conds.push_back(c);
+      }
       IndexElem(int index) {elem = index;}
+      IndexElem(int index, std::pair<std::string, int> c) {
+        elem = index;
+        conds.push_back(c);
+      }
+      int evalCond(int ch) {
+        for (auto cond : conds) {
+          ch = evalCondHelper(ch, cond);
+        }
+        return ch;  
+      }
+    
+    private: 
+      int evalCondHelper(int ch, std::pair<std::string, int> c) {
+        if (c.first.compare("add") == 0) {
+          return ch + c.second;
+        } else if (c.first.compare("mul") == 0) {
+          return ch * c.second;
+        } else if (c.first.compare("sub") == 0) {
+          return ch * c.second;
+        } else {
+          return ch;
+        }
+      }
   };
 
   class CharElem : public KQueryElem {
