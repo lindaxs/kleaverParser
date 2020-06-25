@@ -358,17 +358,11 @@ static bool OutputParserAST(const char *Filename,
           kparser.initializeParser(symArray);
           llvm:outs() << "Parser " << QC->Objects[i]->name  << " initialized\n"; 
         }
-            
-        
-        
-
         HParser *fullParser;
         kparser.parseQueryCommand(Query(ConstraintManager(QC->Constraints), 
                                       QC->Query), &fullParser);
-
       }
     }
-
   }
 
   for (std::vector<Decl*>::iterator it = Decls.begin(),

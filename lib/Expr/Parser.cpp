@@ -668,7 +668,10 @@ DeclResult ParserImpl::ParseQueryCommand() {
       it = ArraySymTab.find(Label);
 
     if (it == ArraySymTab.end()) {
-      Error("unknown array", LTok);
+      const Array *root;
+      root = TheArrayCache.CreateArray(Label->Name, 1);
+      Objects.push_back(root);
+      // Error("unknown array", LTok);
     } else {
       Objects.push_back(it->second->Root);
     }
