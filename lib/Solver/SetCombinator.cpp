@@ -226,7 +226,7 @@ HParser* SetCombinator::outputCombinator() {
   // Ending sequence
   // If allow any ch, no need to specify
   // TODO: make optional?
-  if (currSet.size() != MAXVAL || combinatorElemStr.size() == 1) { 
+  if (currSet.size() != MAXVAL || fullCombinatorStr.size() == 0) { 
     elemUnion = outputSeqElem(combinatorElem, count);
     elemStr = outputSeqElemStr(combinatorElemStr, count);
     fullCombinator.push_back(elemUnion);
