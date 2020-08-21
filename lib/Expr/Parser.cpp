@@ -659,7 +659,6 @@ DeclResult ParserImpl::ParseQueryCommand() {
       continue;
     }
 
-    Token LTok = Tok;
     const Identifier *Label = GetOrCreateIdentifier(Tok);
     ConsumeToken();
 

@@ -362,6 +362,11 @@ static bool OutputParserAST(const char *Filename,
         kparser.parseQueryCommand(Query(ConstraintManager(QC->Constraints), 
                                       QC->Query), &fullParser);
       }
+    } else if (ArrayDecl *AD = dyn_cast<ArrayDecl>(D)) {
+      if (AD->Root->isConstantArray()) { // If not symbolic array
+        kparser.parseArrayDecl(AD->Root);
+      }
+      
     }
   }
 

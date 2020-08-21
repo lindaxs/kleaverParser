@@ -14,6 +14,27 @@
 #include <vector>
 
 namespace klee {
+
+  class Cond {
+    public:
+      int number;
+      enum Type {
+        Add, 
+        Mul, 
+        Concat, 
+        Index,
+        And,
+      };
+      Type type;
+      Type getType() { return type; }
+      int getNum() { return number; }
+
+      Cond(Type t, int n=-1) {
+        type = t;
+        number = n;
+      }
+  };
+
   class KQueryElem {
     public: 
       int elem;
@@ -23,7 +44,7 @@ namespace klee {
         Char, 
         Bool,
       };
-      std::vector<std::pair<std::string, int>> conds;
+      std::vector<Cond*> conds;
       virtual Type getType() const = 0;
   };
 
@@ -39,11 +60,11 @@ namespace klee {
       Type type = Index;
       // Maintain conditions
       Type getType() const { return Index; }
-      void addCond(std::pair<std::string, int> c) {
+      void addCond(Cond* c) {
         conds.push_back(c);
       }
       IndexElem(int index) {elem = index;}
-      IndexElem(int index, std::pair<std::string, int> c) {
+      IndexElem(int index, Cond *c) {
         elem = index;
         conds.push_back(c);
       }
@@ -55,15 +76,12 @@ namespace klee {
       }
     
     private: 
-      int evalCondHelper(int ch, std::pair<std::string, int> c) {
-        if (c.first.compare("add") == 0) {
-          return ch + c.second;
-        } else if (c.first.compare("mul") == 0) {
-          return ch * c.second;
-        } else if (c.first.compare("sub") == 0) {
-          return ch * c.second;
-        } else {
-          return ch;
+      int evalCondHelper(int ch, Cond *c) {
+        switch(c->getType()) {
+          case Cond::Add: { return ch + c->getNum(); }
+          case Cond::Mul: { return ch * c->getNum(); }
+          case Cond::And: { return ch & c->getNum(); }
+          default: { return ch; }
         }
       }
   };
@@ -85,20 +103,65 @@ namespace klee {
 
   class KQueryParser {
     private: 
+      // Keep track of all constant arrays by name
+      std::map<std::string, const Array*> arrayMap;
+      std::string arrayName;
       // Keep track of all set combinators by name
       std::map<std::string, SetCombinator> combMap; 
       // Keep track of particular combinator
       std::string combName;
       std::map<ref<Expr>, KQueryElem*> parsed;
-
       
 
+      
     public: 
       // SetCombinator getCombinator() { return comb; }
 
+      /**
+       * Initialize symbolic argument parser. 
+       * 
+       * @param arr symbolic array with given name and size
+      */
       void initializeParser(const Array* arr);
+
+      /** 
+        * Main method called to parse array declaration. 
+        * 
+        * @param arr constant array from array delcaration to parse
+        * 
+        * @return true or false, depending on success of parse
+      */ 
+      bool parseArrayDecl(const Array *arr);
+
+      /** 
+        * Main method called to parse Query
+        * 
+        * @param query to parse
+        * @param fullParser pointer to Hammer Parser, which is modified to be the parser. 
+        * fullParser currently broken because can't deal with variable size. 
+        * 
+        * @return true or false, depending on success of parse
+      */ 
       bool parseQueryCommand(const Query &QC, HParser** fullParser);
+
+      /** 
+        * Parses one constraint.
+        * 
+        * @param e Constraint to parse
+        * @param width_out Size of element being parsed
+        * 
+        * @return KQueryElem*, which can be type character, boolean or index
+      */
       KQueryElem* parseConstraint(ref<Expr> constraint, int* width_out);
+
+      /** 
+        * The main code to parse one constraint. Switches based on kind of constraint.
+        * 
+        * @param e Constraint to parse
+        * @param width_out Size of element being parsed
+        * 
+        * @return KQueryElem*, which can be type character, boolean or index
+      */
       KQueryElem* parseConstraintActual(ref<Expr> constraint, int* width_out);
 
 
