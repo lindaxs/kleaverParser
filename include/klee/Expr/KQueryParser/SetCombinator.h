@@ -10,31 +10,40 @@
 #include<iterator>
 #include<sstream>
 #include<fstream>
+#include<map>
+
+#define MAXVAL 128
 
 extern "C" {
   #include<hammer/hammer.h>
 }
 
+typedef std::vector< std::set<char> > SetList;
+typedef std::map< int, SetList > SetMap;
+
 // Assumptions: index will always be < parserLength
 class SetCombinator {
   private: 
-    std::vector<std::set<char> > setList;
+    SetList setList;
+    // Mapping index to list of sets, as restrained by different constraints.
+    // setList is the intersection of all the sets for each index.
+    SetMap setMap;
     int parserLength;
     std::string identifier;
     
 
   public: 
-    std::vector<std::set<char> > getSetList() {
-      return setList;
-    }
+    SetList getSetList();
+    SetMap getSetMap() { return setMap; }
 
     std::string getName() { return identifier; }
     int getLength() { return parserLength; }
 
-    void setElement(int index, std::set<char> newSet);
+    // Need to compare old and new set. 
+    void setElement(int index, std::set<char> oldSet, std::set<char> newSet);
     void unionSets(int index, std::set<char> otherSet);
     void intersectSets(int index, std::set<char> otherSet);
-    void complementSet(int index);
+    void complementSet(int index, std::set<char> &oldSet);
 
     void printChRange(); 
     HParser* outputCombinator(); 
@@ -43,14 +52,5 @@ class SetCombinator {
     SetCombinator();
     SetCombinator(std::string identifier, int parserLength);
 };
-
-// template <std::size_t... I>
-// class index_sequence {};
-
-// template <std::size_t N, std::size_t ...I>
-// struct make_index_sequence : make_index_sequence<N-1, N-1,I...> {};
-
-// template <std::size_t ...I>
-// struct make_index_sequence<0,I...> : index_sequence<I...> {};
 
 #endif // KLEE_SETCOMBINATOR_H

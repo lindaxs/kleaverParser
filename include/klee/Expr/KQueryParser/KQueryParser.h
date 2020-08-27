@@ -13,6 +13,8 @@
 #include <sstream>
 #include <vector>
 
+#define MAXVAL 128 
+
 namespace klee {
 
   class Cond {
@@ -58,14 +60,26 @@ namespace klee {
   class IndexElem : public KQueryElem {
     public:
       Type type = Index;
+      std::set<char> indexSet;
+      
       // Maintain conditions
       Type getType() const { return Index; }
+      std::set<char> getSet() const { return indexSet; }
+      void setIndexSet(std::set<char> indexSet) { this->indexSet = indexSet; }
       void addCond(Cond* c) {
         conds.push_back(c);
       }
-      IndexElem(int index) {elem = index;}
+      IndexElem(int index) {
+        elem = index;
+        for (int i = 0; i < MAXVAL; i++) {
+          indexSet.insert((char) i);
+        }
+      }
       IndexElem(int index, Cond *c) {
         elem = index;
+        for (int i = 0; i < MAXVAL; i++) {
+          indexSet.insert((char) i);
+        }
         conds.push_back(c);
       }
       int evalCond(int ch) {

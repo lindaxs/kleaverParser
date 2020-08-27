@@ -1,12 +1,54 @@
 #include "klee/Expr/KQueryParser/SetCombinator.h"
 
-#define MAXVAL 128
-
 // Assumptions: index will always be < parserLength
 
-void SetCombinator::setElement(int index, std::set<char> newSet) {
-  // check to see if any value has been 
-  setList[index] = newSet;
+// For debugging purposes
+void printSet(std::set<char> mySet) {
+  for (auto elem : mySet) {
+    std::cout << elem << " ";
+  }
+  std::cout << std::endl;
+}
+// For debugging purposes
+void print(std::string str) {
+  std::cout << str << std::endl;
+}
+void print(int i) {
+  std::cout << i << std::endl;
+}
+// For debugging purposes
+void printSetMap(SetMap mySetMap) {
+  for (auto const& setMapElem : mySetMap) { 
+    for (auto const& currSet : setMapElem.second) {
+      for (auto elem : currSet) {
+        std::cout << elem << ' ';
+      }
+      std::cout << std::endl;
+    }
+    std::cout << std::endl;
+  }
+}
+
+SetList SetCombinator::getSetList() {
+  for (auto const& setMapElem : setMap) {
+    for (auto const& currSet : setMapElem.second) {
+      intersectSets(setMapElem.first, currSet);
+    }
+  }
+  return setList;
+}
+
+void SetCombinator::setElement(int index, std::set<char> oldSet, std::set<char> newSet) {
+  // check to see if this is the start of a new constraint 
+  if (setMap.find(index) == setMap.end()) {
+    setMap[index] = SetList();
+  }
+
+  if (setMap[index].size() > 0 && setMap[index].back() == oldSet) {
+    setMap[index].back() = newSet;
+  } else {
+    setMap[index].push_back(newSet);
+  }
 }
 
 void SetCombinator::unionSets(int index, std::set<char> otherSet) {
@@ -25,18 +67,25 @@ void SetCombinator::intersectSets(int index, std::set<char> otherSet) {
   setList[index] = intSet;
 }
 
-void SetCombinator::complementSet(int index) {
+void SetCombinator::complementSet(int index, std::set<char> &oldSet) {
   // Return complement of set
   std::set<char> compSet;
+
   for (int i  = 0; i < MAXVAL; i++) {
-    if (setList[index].find(i) == setList[index].end()) {
+    if (oldSet.find(i) == oldSet.end()) {
       compSet.insert((char) i);
     }
   }
-  setList[index] = compSet;
+  if (setMap[index].back() == oldSet) {
+    setMap[index].back() = compSet;
+  } else {
+    setMap[index].push_back(compSet);
+  }
+  oldSet = compSet;
 }
  
 void SetCombinator::printChRange() {
+  getSetList();
   for (size_t i = 0; i < setList.size(); i++) {
     std::cout << "Position " << i << ':'; 
     bool first = true;
@@ -298,4 +347,5 @@ SetCombinator::SetCombinator(std::string identifier, int parserLength) {
     } 
     setList.push_back(fullSet);
   }
+  setMap = SetMap();
 }
