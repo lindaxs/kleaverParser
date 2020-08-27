@@ -39,32 +39,15 @@ SetList SetCombinator::getSetList() {
 }
 
 void SetCombinator::setElement(int index, std::set<char> oldSet, std::set<char> newSet) {
-  // check to see if this is the start of a new constraint 
   if (setMap.find(index) == setMap.end()) {
     setMap[index] = SetList();
   }
-
+  // If it is not the start of new constraint, update old set.
   if (setMap[index].size() > 0 && setMap[index].back() == oldSet) {
     setMap[index].back() = newSet;
-  } else {
+  } else {  // Otherwise, add new set.
     setMap[index].push_back(newSet);
   }
-}
-
-void SetCombinator::unionSets(int index, std::set<char> otherSet) {
-  for (char ch : otherSet) {
-    setList[index].insert(ch);
-  }
-}
-
-void SetCombinator::intersectSets(int index, std::set<char> otherSet) {
-  std::set<char> intSet;
-  for (char ch : otherSet) {
-    if (setList[index].find(ch) != setList[index].end()) {
-      intSet.insert(ch);
-    }
-  }
-  setList[index] = intSet;
 }
 
 void SetCombinator::complementSet(int index, std::set<char> &oldSet) {
@@ -82,6 +65,22 @@ void SetCombinator::complementSet(int index, std::set<char> &oldSet) {
     setMap[index].push_back(compSet);
   }
   oldSet = compSet;
+}
+
+void SetCombinator::intersectSets(int index, std::set<char> otherSet) {
+  std::set<char> intSet;
+  for (char ch : otherSet) {
+    if (setList[index].find(ch) != setList[index].end()) {
+      intSet.insert(ch);
+    }
+  }
+  setList[index] = intSet;
+}
+
+void SetCombinator::unionSets(int index, std::set<char> otherSet) {
+  for (char ch : otherSet) {
+    setList[index].insert(ch);
+  }
 }
  
 void SetCombinator::printChRange() {
@@ -197,6 +196,8 @@ std::string outputSeqElemStr(std::vector<std::string> combinatorElemStr, int cou
 }
 
 HParser* SetCombinator::outputCombinator() {
+  getSetList();
+  
   int count = 0;
   std::set<char> prevSet = setList[0];
   std::set<char> currSet;
